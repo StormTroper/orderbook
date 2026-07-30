@@ -35,6 +35,24 @@ public:
                     if (level->second.empty()) asks_.erase(level);
                 }
             }
+        } else {
+            while (o.quantity > 0 && !bids_.empty()
+                   && bids_.begin()->first >= o.price) {
+
+                auto level = bids_.begin();
+                auto& resting = level->second.front();
+
+                uint32_t traded = std::min(o.quantity, resting.quantity);
+                o.quantity       -= traded;
+                resting.quantity -= traded;
+
+                std::cout << "FILL " << traded << " @ " << level->first << "\n";
+
+                if (resting.quantity == 0) {
+                    level->second.pop_front();
+                    if (level->second.empty()) bids_.erase(level);
+                }
+            }
         }
         if (o.quantity > 0) add(o);
     }

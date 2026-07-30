@@ -33,8 +33,9 @@ public:
                 o.quantity       -= traded;
                 resting.quantity -= traded;
 
+#ifdef ORDERBOOK_VERBOSE
                 std::cout << "FILL " << traded << " @ " << level->first << "\n";
-
+#endif
                 if (resting.quantity == 0) {
                     index_.erase(resting.id);
                     level->second.pop_front();
@@ -52,8 +53,9 @@ public:
                 o.quantity       -= traded;
                 resting.quantity -= traded;
 
+#ifdef ORDERBOOK_VERBOSE
                 std::cout << "FILL " << traded << " @ " << level->first << "\n";
-
+#endif
                 if (resting.quantity == 0) {
                     index_.erase(resting.id);
                     level->second.pop_front();

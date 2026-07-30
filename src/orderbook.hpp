@@ -2,6 +2,7 @@
 #include "order.hpp"
 #include <map>
 #include <list>
+#include <unordered_map>
 #include <optional>
 #include <algorithm>
 #include <iostream>
@@ -10,9 +11,13 @@ class OrderBook {
 public:
     void add(const Order& o) {
         if (o.side == Side::Buy) {
-            bids_[o.price].push_back(o);
+            auto& level = bids_[o.price];
+            auto it = level.insert(level.end(), o);
+            index_[o.id] = OrderLocation{o.side, o.price, it};
         } else {
-            asks_[o.price].push_back(o);
+            auto& level = asks_[o.price];
+            auto it = level.insert(level.end(), o);
+            index_[o.id] = OrderLocation{o.side, o.price, it};
         }
     }
 
@@ -31,6 +36,7 @@ public:
                 std::cout << "FILL " << traded << " @ " << level->first << "\n";
 
                 if (resting.quantity == 0) {
+                    index_.erase(resting.id);
                     level->second.pop_front();
                     if (level->second.empty()) asks_.erase(level);
                 }
@@ -49,12 +55,33 @@ public:
                 std::cout << "FILL " << traded << " @ " << level->first << "\n";
 
                 if (resting.quantity == 0) {
+                    index_.erase(resting.id);
                     level->second.pop_front();
                     if (level->second.empty()) bids_.erase(level);
                 }
             }
         }
         if (o.quantity > 0) add(o);
+    }
+
+    bool cancel(uint64_t id) {
+        auto idx = index_.find(id);
+        if (idx == index_.end()) return false;
+
+        const OrderLocation& loc = idx->second;
+
+        if (loc.side == Side::Buy) {
+            auto level = bids_.find(loc.price);
+            level->second.erase(loc.it);
+            if (level->second.empty()) bids_.erase(level);
+        } else {
+            auto level = asks_.find(loc.price);
+            level->second.erase(loc.it);
+            if (level->second.empty()) asks_.erase(level);
+        }
+
+        index_.erase(idx);
+        return true;
     }
 
     std::optional<int64_t> best_bid() const {
@@ -81,7 +108,16 @@ public:
         return total;
     }
 
+    size_t index_size() const { return index_.size(); }
+
 private:
+    struct OrderLocation {
+        Side side;
+        int64_t price;
+        std::list<Order>::iterator it;
+    };
+
     std::map<int64_t, std::list<Order>, std::greater<int64_t>> bids_;
     std::map<int64_t, std::list<Order>> asks_;
+    std::unordered_map<uint64_t, OrderLocation> index_;
 };

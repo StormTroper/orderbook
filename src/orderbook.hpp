@@ -67,6 +67,20 @@ public:
         return asks_.begin()->first;
     }
 
+    uint32_t quantity_at(Side side, int64_t price) const {
+        uint32_t total = 0;
+        if (side == Side::Buy) {
+            auto it = bids_.find(price);
+            if (it == bids_.end()) return 0;
+            for (const auto& o : it->second) total += o.quantity;
+        } else {
+            auto it = asks_.find(price);
+            if (it == asks_.end()) return 0;
+            for (const auto& o : it->second) total += o.quantity;
+        }
+        return total;
+    }
+
 private:
     std::map<int64_t, std::list<Order>, std::greater<int64_t>> bids_;
     std::map<int64_t, std::list<Order>> asks_;
